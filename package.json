@@ -1,0 +1,63 @@
+{
+  "name": "cmdo-db",
+  "version": "1.0.0-rc7",
+  "description": "Simple storage solution for the modern browser",
+  "repository": "https://github.com/cmdo/toolkit.git",
+  "author": "Christoffer Rødvik <dev@kodemon.net>",
+  "license": "MIT",
+  "keywords": [
+    "browser",
+    "database",
+    "mingo",
+    "mongodb"
+  ],
+  "main": "./cjs/index.js",
+  "module": "./esm/index.js",
+  "types": "./types/index.d.ts",
+  "cmdo": {
+    "type": "module"
+  },
+  "jest": {
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "tsconfig-cjs.json"
+      }
+    },
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.ts?$",
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ]
+  },
+  "scripts": {
+    "prepublishOnly": "npm run lint && npm run build",
+    "build": "npm run clean && npm run build:esm && npm run build:cjs",
+    "build:esm": "./node_modules/.bin/tsc --project tsconfig-esm.json && ./node_modules/.bin/cmdo output esm -f esm",
+    "build:cjs": "./node_modules/.bin/tsc --project tsconfig-cjs.json",
+    "clean": "rm -rf ./cjs ./esm ./types",
+    "lint": "./node_modules/.bin/eslint 'src/**/*.ts'",
+    "test": "./node_modules/.bin/jest --runInBand --verbose"
+  },
+  "dependencies": {
+    "cmdo-inverse": "3.0.3",
+    "eventemitter3": "4.0.7",
+    "mingo": "4.1.5",
+    "nanoid": "3.1.29"
+  },
+  "devDependencies": {
+    "@types/jest": "27.0.2",
+    "@types/node": "16.10.3",
+    "@typescript-eslint/eslint-plugin": "4.33.0",
+    "@typescript-eslint/parser": "4.33.0",
+    "cmdo-cli": "0.2.5",
+    "eslint": "7.32.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-prettier": "4.0.0",
+    "eslint-plugin-simple-import-sort": "7.0.0",
+    "ts-jest": "27.0.5",
+    "typescript": "4.4.3"
+  }
+}
