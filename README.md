@@ -1,5 +1,4 @@
-# Socket
+DB
+--
 
-A simple web socket service.
-
-[Docs](https://docs.kodemon.net/socket)
+Client side database solution written in TypeScript.
