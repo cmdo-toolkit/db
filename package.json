@@ -1,6 +1,6 @@
 {
   "name": "cmdo-db",
-  "version": "1.0.0-rc7",
+  "version": "1.0.0-rc8",
   "description": "Simple storage solution for the modern browser",
   "repository": "https://github.com/cmdo/toolkit.git",
   "author": "Christoffer Rødvik <dev@kodemon.net>",
@@ -42,7 +42,6 @@
     "test": "./node_modules/.bin/jest --runInBand --verbose"
   },
   "dependencies": {
-    "cmdo-inverse": "3.0.3",
     "eventemitter3": "4.0.7",
     "mingo": "4.1.5",
     "nanoid": "3.1.29"

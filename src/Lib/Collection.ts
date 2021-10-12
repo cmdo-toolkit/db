@@ -1,42 +1,14 @@
 import { Query } from "mingo";
-import { Cursor } from "mingo/cursor";
 import { RawObject } from "mingo/types";
 
-import { Model, ModelClass } from "./Model";
+import type { Options, Settings } from "../Types/Collection";
+import type { ModelClass } from "../Types/Model";
+import { Document } from "../Types/Storage";
+import { addOptions } from "../Utils/Query";
 import { observe, observeOne } from "./Observe";
-import { Document, Storage } from "./Storage";
+import { Storage } from "./Storage";
 
-/*
- |--------------------------------------------------------------------------------
- | Types
- |--------------------------------------------------------------------------------
- */
-
-//#region
-
-type Settings<M> = {
-  model: M;
-};
-
-export type Options = {
-  sort?: {
-    [key: string]: 1 | -1;
-  };
-  skip?: number;
-  limit?: number;
-};
-
-//#endregion
-
-/*
- |--------------------------------------------------------------------------------
- | Collection
- |--------------------------------------------------------------------------------
- */
-
-//#region
-
-export class Collection<T extends Model = Model, M extends ModelClass<T> = ModelClass<T>> {
+export class Collection<M extends ModelClass = ModelClass> {
   public readonly name: string;
   public readonly model: M;
   public readonly storage: Storage;
@@ -44,7 +16,7 @@ export class Collection<T extends Model = Model, M extends ModelClass<T> = Model
   constructor(name: string, settings: Settings<M>) {
     this.name = name;
     this.model = settings.model;
-    this.storage = new Storage(name);
+    this.storage = new Storage(name, settings.adapter);
   }
 
   /*
@@ -53,25 +25,21 @@ export class Collection<T extends Model = Model, M extends ModelClass<T> = Model
    |--------------------------------------------------------------------------------
    */
 
-  //#region
-
-  public async insert(document: ReturnType<T["toJSON"]>): Promise<T> {
+  public async insert(document: ReturnType<InstanceType<M>["toJSON"]>) {
     return this.toModel(await this.storage.insert(document));
   }
 
-  public async update(document: Document & Partial<ReturnType<T["toJSON"]>>): Promise<T> {
+  public async update(document: Document & Partial<ReturnType<InstanceType<M>["toJSON"]>>) {
     return this.toModel(await this.storage.update(document));
   }
 
-  public async upsert(document: ReturnType<T["toJSON"]>): Promise<T> {
+  public async upsert(document: ReturnType<InstanceType<M>["toJSON"]>) {
     return this.toModel(await this.storage.upsert(document));
   }
 
-  public async delete(id: string): Promise<void> {
+  public async delete(id: string) {
     return this.storage.delete(id);
   }
-
-  //#endregion
 
   /*
    |--------------------------------------------------------------------------------
@@ -79,13 +47,11 @@ export class Collection<T extends Model = Model, M extends ModelClass<T> = Model
    |--------------------------------------------------------------------------------
    */
 
-  //#region
-
   public observe(criteria: RawObject = {}, options?: Options) {
     let unsubscribe: () => void;
-    let next: (value: T[]) => void;
+    let next: (value: InstanceType<M>[]) => void;
     return {
-      subscribe: (_next: (value: T[]) => void) => {
+      subscribe: (_next: (value: InstanceType<M>[]) => void) => {
         next = _next;
         unsubscribe = observe(this, criteria, options, (documents: Document[]) => {
           next(documents.map((document) => this.toModel(document)));
@@ -103,9 +69,9 @@ export class Collection<T extends Model = Model, M extends ModelClass<T> = Model
 
   public observeOne(criteria: RawObject = {}) {
     let unsubscribe: () => void;
-    let next: (value?: T) => void;
+    let next: (value?: InstanceType<M>) => void;
     return {
-      subscribe: (_next: (value?: T) => void) => {
+      subscribe: (_next: (value?: InstanceType<M>) => void) => {
         next = _next;
         unsubscribe = observeOne(this, criteria, (document: Document | undefined) => {
           next(document ? this.toModel(document) : undefined);
@@ -121,15 +87,11 @@ export class Collection<T extends Model = Model, M extends ModelClass<T> = Model
     };
   }
 
-  //#endregion
-
   /*
    |--------------------------------------------------------------------------------
    | Queries
    |--------------------------------------------------------------------------------
    */
-
-  //#region
 
   /**
    * Retrieve a record by the document 'id' key.
@@ -202,42 +164,13 @@ export class Collection<T extends Model = Model, M extends ModelClass<T> = Model
     return cursor;
   }
 
-  //#endregion
-
   /*
    |--------------------------------------------------------------------------------
    | Utilities
    |--------------------------------------------------------------------------------
    */
 
-  //#region
-
   private toModel(document: Document) {
-    return new this.model(document);
+    return new this.model(document) as InstanceType<M>;
   }
-
-  //#endregion
-}
-
-//#endregion
-
-/*
- |--------------------------------------------------------------------------------
- | Utilities
- |--------------------------------------------------------------------------------
- */
-
-//#region
-
-export function addOptions(cursor: Cursor, options: Options): Cursor {
-  if (options.sort) {
-    cursor.sort(options.sort);
-  }
-  if (options.skip !== undefined) {
-    cursor.skip(options.skip);
-  }
-  if (options.limit !== undefined) {
-    cursor.limit(options.limit);
-  }
-  return cursor;
 }

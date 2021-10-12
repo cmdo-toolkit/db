@@ -1,32 +1,22 @@
 import { Collection } from "../Lib/Collection";
-import { Model, ModelClass } from "../Lib/Model";
+import type { Settings } from "../Types/Collection";
 
 const cache = new Map<string, any>();
 
-/*
- |--------------------------------------------------------------------------------
- | Utilities
- |--------------------------------------------------------------------------------
- */
-
-//#region
-
-export function setCollection<T extends Model>(name: string, model: ModelClass<T>): Collection<T> {
-  const collection = new Collection<T>(name, { model });
+export function setCollection(name: string, settings: Settings) {
+  const collection = new Collection(name, settings);
   cache.set(name, collection);
   return collection;
 }
 
-export function getCollection<T extends Model>(name: string, model: ModelClass<T>): Collection<T> {
+export function getCollection(name: string, settings: Settings) {
   const collection = cache.get(name);
   if (collection) {
     return collection;
   }
-  return setCollection(name, model);
+  return setCollection(name, settings);
 }
 
 export function delCollection(name: string) {
   cache.delete(name);
 }
-
-//#endregion

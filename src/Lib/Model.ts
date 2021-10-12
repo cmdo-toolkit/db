@@ -1,20 +1,4 @@
-import type { Document } from "./Storage";
-
-/*
- |--------------------------------------------------------------------------------
- | Types
- |--------------------------------------------------------------------------------
- */
-
-export type ModelClass<T extends Model = Model> = {
-  new (document: any): T;
-};
-
-/*
- |--------------------------------------------------------------------------------
- | Model
- |--------------------------------------------------------------------------------
- */
+import type { Document } from "../Types/Storage";
 
 export abstract class Model<D extends Document = Document> {
   public static readonly $collection: string;
@@ -25,13 +9,7 @@ export abstract class Model<D extends Document = Document> {
     this.id = document.id;
   }
 
-  /*
-   |--------------------------------------------------------------------------------
-   | Serializer
-   |--------------------------------------------------------------------------------
-   */
-
-  public toJSON(props: any): D {
+  public toJSON(props: Partial<D>): D {
     return JSON.parse(
       JSON.stringify({
         id: this.id,

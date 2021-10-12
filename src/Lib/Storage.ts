@@ -1,74 +1,9 @@
 import { EventEmitter } from "eventemitter3";
 import { nanoid } from "nanoid";
 
-import { container } from "../Container";
-
-/*
- |--------------------------------------------------------------------------------
- | Types
- |--------------------------------------------------------------------------------
- */
-
-//#region
-
-export type StorageAdapter = {
-  set(name: string, documents: Document[]): Promise<void>;
-  get(name: string): Promise<Document[]>;
-  del(name: string): Promise<void>;
-};
-
-export type Document = {
-  id: string;
-};
-
-type Status = "loading" | "ready" | "working";
-
-export type ChangeType = "insert" | "update" | "delete";
-
-type Operation = Insert | Update | Upsert | Delete;
-
-type Insert = {
-  type: "insert";
-  document: {
-    id?: string;
-    [key: string]: unknown;
-  };
-} & OperationPromise;
-
-type Update = {
-  type: "update";
-  document: Document;
-} & OperationPromise;
-
-type Upsert = {
-  type: "upsert";
-  document: Document;
-} & OperationPromise;
-
-type Delete = {
-  type: "delete";
-  id: string;
-} & OperationDeletePromise;
-
-type OperationPromise = {
-  resolve: (value: any) => void;
-  reject: (reason?: any) => void;
-};
-
-type OperationDeletePromise = {
-  resolve: () => void;
-  reject: (reason?: any) => void;
-};
-
-//#endregion
-
-/*
- |--------------------------------------------------------------------------------
- | Storage
- |--------------------------------------------------------------------------------
- */
-
-//#region
+import { InstanceAdapter } from "../Adapters/InstanceAdapter";
+import { DocumentNotFoundError, DuplicateDocumentError } from "../Errors/Storage";
+import type { Adapter, ChangeType, Delete, Document, Operation, Status } from "../Types/Storage";
 
 export class Storage extends EventEmitter<{
   loading: () => void;
@@ -76,8 +11,11 @@ export class Storage extends EventEmitter<{
   working: () => void;
   change: (type: ChangeType, document: Document) => void;
 }> {
+  public static DuplicateDocumentError = DuplicateDocumentError;
+  public static DocumentNotFoundError = DocumentNotFoundError;
+
   public readonly name: string;
-  public readonly adapter: StorageAdapter;
+  public readonly adapter: Adapter;
   public readonly documents: Map<string, Document>;
   public readonly operations: Operation[];
   public readonly debounce: {
@@ -88,7 +26,7 @@ export class Storage extends EventEmitter<{
 
   public status: Status;
 
-  constructor(name: string, adapter = container.get("StorageAdapter")) {
+  constructor(name: string, adapter: Adapter = new InstanceAdapter()) {
     super();
     this.name = name;
     this.adapter = adapter;
@@ -99,43 +37,13 @@ export class Storage extends EventEmitter<{
 
   /*
    |--------------------------------------------------------------------------------
-   | Errors
+   | Accessors
    |--------------------------------------------------------------------------------
    */
-
-  //#region
-
-  public static DuplicateDocumentError = class extends Error {
-    public readonly type = "DuplicateDocumentError";
-
-    constructor(id: string) {
-      super(`Collection Insert Violation: Document '${id}' already exists`);
-    }
-  };
-
-  public static DocumentNotFoundError = class extends Error {
-    public readonly type = "DocumentNotFoundError";
-
-    constructor(id: string) {
-      super(`Collection Update Violation: Document '${id}' does not exists`);
-    }
-  };
-
-  //#endregion
-
-  /*
-   |--------------------------------------------------------------------------------
-   | Getters
-   |--------------------------------------------------------------------------------
-   */
-
-  //#region
 
   public get data(): Document[] {
     return Array.from(this.documents.values());
   }
-
-  //#endregion
 
   /*
    |--------------------------------------------------------------------------------
@@ -143,21 +51,15 @@ export class Storage extends EventEmitter<{
    |--------------------------------------------------------------------------------
    */
 
-  //#region
-
   public has(id: string): boolean {
     return this.documents.has(id);
   }
-
-  //#endregion
 
   /*
    |--------------------------------------------------------------------------------
    | Status
    |--------------------------------------------------------------------------------
    */
-
-  //#region
 
   public is(status: Status): boolean {
     return this.status === status;
@@ -169,15 +71,11 @@ export class Storage extends EventEmitter<{
     return this;
   }
 
-  //#endregion
-
   /*
    |--------------------------------------------------------------------------------
    | Event Handler
    |--------------------------------------------------------------------------------
    */
-
-  //#region
 
   public onChange(cb: (type: ChangeType, document: Document) => void): () => void {
     this.addListener("change", cb);
@@ -186,15 +84,11 @@ export class Storage extends EventEmitter<{
     };
   }
 
-  //#endregion
-
   /*
    |--------------------------------------------------------------------------------
    | Persistors
    |--------------------------------------------------------------------------------
    */
-
-  //#region
 
   public async load(): Promise<this> {
     if (!this.is("loading")) {
@@ -222,8 +116,6 @@ export class Storage extends EventEmitter<{
    | Mutators
    |--------------------------------------------------------------------------------
    */
-
-  //#region
 
   public async insert(document: Document): Promise<Document> {
     return new Promise((resolve, reject) => {
@@ -261,15 +153,11 @@ export class Storage extends EventEmitter<{
     });
   }
 
-  //#endregion
-
   /*
    |--------------------------------------------------------------------------------
    | Processor
    |--------------------------------------------------------------------------------
    */
-
-  //#region
 
   private async process(): Promise<this> {
     if (this.is("loading") || this.is("working")) {
@@ -343,8 +231,4 @@ export class Storage extends EventEmitter<{
       }
     }
   }
-
-  //#endregion
 }
-
-//#endregion

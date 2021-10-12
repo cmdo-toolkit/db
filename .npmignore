@@ -1,14 +1,18 @@
 # General
 
 node_modules
+
+# Source
+
 src
-tests
 
 # Testing
 
 coverage
+tests
 
 # TypeScript
 
 tsconfig-esm.json
 tsconfig-cjs.json
+tsconfig.json

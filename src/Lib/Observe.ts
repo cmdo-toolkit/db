@@ -1,41 +1,12 @@
 import { Query } from "mingo";
 import { RawObject } from "mingo/types";
 
-import { InstanceStorage } from "../Adapters/InstanceStorage";
-import { addOptions, Collection, Options } from "./Collection";
-import { Document, Storage } from "./Storage";
-
-/*
- |--------------------------------------------------------------------------------
- | Types
- |--------------------------------------------------------------------------------
- */
-
-//#region
-
-export type Action<T = unknown> =
-  | {
-      type: "insert";
-      instance: T;
-    }
-  | {
-      type: "update";
-      instance: T;
-    }
-  | {
-      type: "delete";
-      instance: T;
-    };
-
-//#endregion
-
-/*
- |--------------------------------------------------------------------------------
- | Observe
- |--------------------------------------------------------------------------------
- */
-
-//#region
+import { InstanceAdapter } from "../Adapters/InstanceAdapter";
+import type { Options } from "../Types/Collection";
+import type { Document } from "../Types/Storage";
+import { toQueriedData } from "../Utils/Observe";
+import { Collection } from "./Collection";
+import { Storage } from "./Storage";
 
 export function observe(
   collection: Collection,
@@ -43,7 +14,7 @@ export function observe(
   options: Options | undefined,
   cb: (documents: Document[]) => void
 ): () => void {
-  const store = new Storage("observer", new InstanceStorage());
+  const store = new Storage("observer", new InstanceAdapter());
 
   // ### Initial Query
 
@@ -97,15 +68,11 @@ export function observe(
   });
 }
 
-//#endregion
-
 /*
  |--------------------------------------------------------------------------------
  | Oberve One
  |--------------------------------------------------------------------------------
  */
-
-//#region
 
 export function observeOne(
   collection: Collection,
@@ -131,22 +98,3 @@ export function observeOne(
     }
   });
 }
-
-//#endregion
-
-/*
- |--------------------------------------------------------------------------------
- | Utilities
- |--------------------------------------------------------------------------------
- */
-
-//#region
-
-function toQueriedData(documents: Document[], options?: Options): Document[] {
-  if (options) {
-    return addOptions(new Query({}).find(documents), options).all() as Document[];
-  }
-  return documents;
-}
-
-//#endregion
