@@ -5,7 +5,8 @@ import type { Options, Settings } from "../Types/Collection";
 import type { ModelClass } from "../Types/Model";
 import { Document } from "../Types/Storage";
 import { addOptions } from "../Utils/Query";
-import { observe, observeOne } from "./Observe";
+import { observe } from "./Observe";
+import { observeOne } from "./ObserveOne";
 import { Storage } from "./Storage";
 
 export class Collection<M extends ModelClass = ModelClass> {
