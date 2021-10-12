@@ -1,6 +1,6 @@
 {
   "name": "cmdo-db",
-  "version": "1.0.0-rc8",
+  "version": "1.0.0",
   "description": "Simple storage solution for the modern browser",
   "repository": "https://github.com/cmdo/toolkit.git",
   "author": "Christoffer Rødvik <dev@kodemon.net>",

@@ -6,7 +6,7 @@ import { data } from "./Mocks/UserData";
 describe("Collection", () => {
   describe("when registering a new collection", () => {
     it("should successfully register", () => {
-      const collection = new Collection("users", { model: User, adapter: new InstanceAdapter() });
+      const collection = new Collection(User, new InstanceAdapter());
       expect(collection.name).toEqual("users");
       expect(collection.model).toEqual(User);
     });
@@ -109,7 +109,7 @@ describe("Collection", () => {
 });
 
 async function getMockedCollection() {
-  const collection = new Collection("users", { model: User, adapter: new InstanceAdapter() });
+  const collection = new Collection(User, new InstanceAdapter());
 
   await collection.insert(data[0]);
   await collection.insert(data[1]);

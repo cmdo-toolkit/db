@@ -1,8 +1,9 @@
 import { Query } from "mingo";
 import { RawObject } from "mingo/types";
 
-import type { Options, Settings } from "../Types/Collection";
+import type { Options } from "../Types/Collection";
 import type { ModelClass } from "../Types/Model";
+import type { Adapter } from "../Types/Storage";
 import { Document } from "../Types/Storage";
 import { addOptions } from "../Utils/Query";
 import { observe } from "./Observe";
@@ -14,10 +15,10 @@ export class Collection<M extends ModelClass = ModelClass> {
   public readonly model: M;
   public readonly storage: Storage;
 
-  constructor(name: string, settings: Settings<M>) {
-    this.name = name;
-    this.model = settings.model;
-    this.storage = new Storage(name, settings.adapter);
+  constructor(model: M, adapter: Adapter) {
+    this.name = model.$collection;
+    this.model = model;
+    this.storage = new Storage(this.name, adapter);
   }
 
   /*
