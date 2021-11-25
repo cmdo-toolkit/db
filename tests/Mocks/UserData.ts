@@ -15,5 +15,10 @@ export const data: Attributes[] = [
     id: "user-3",
     name: "James Doe",
     email: "james.doe@test.none"
+  },
+  {
+    id: "user-4",
+    name: "John Doe",
+    email: "john.doe2@test.none"
   }
 ];

@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { InstanceAdapter } from "../Adapters/InstanceAdapter";
 import { DocumentNotFoundError, DuplicateDocumentError } from "../Errors/Storage";
 import type { Adapter, ChangeType, Delete, Document, Operation, Status } from "../Types/Storage";
+import { Index } from "./Index";
 
 export class Storage extends EventEmitter<{
   loading: () => void;
@@ -16,6 +17,7 @@ export class Storage extends EventEmitter<{
 
   public readonly name: string;
   public readonly adapter: Adapter;
+  public readonly index: Index;
   public readonly documents: Map<string, Document>;
   public readonly operations: Operation[];
   public readonly debounce: {
@@ -26,10 +28,11 @@ export class Storage extends EventEmitter<{
 
   public status: Status;
 
-  constructor(name: string, adapter: Adapter = new InstanceAdapter()) {
+  constructor(name: string, adapter: Adapter = new InstanceAdapter(), indicies: string[] = []) {
     super();
     this.name = name;
     this.adapter = adapter;
+    this.index = new Index(indicies);
     this.documents = new Map();
     this.operations = [];
     this.status = "loading";
@@ -98,6 +101,7 @@ export class Storage extends EventEmitter<{
     for (const document of documents) {
       this.documents.set(document.id, document);
     }
+    this.index.load(this.data);
     return this.setStatus("ready").process();
   }
 
@@ -118,7 +122,7 @@ export class Storage extends EventEmitter<{
    */
 
   public async insert(document: Document): Promise<Document> {
-    return new Promise((resolve, reject) => {
+    return new Promise<Document>((resolve, reject) => {
       this.load().then(() => {
         this.operations.push({ type: "insert", document, resolve, reject });
         this.process();
@@ -127,7 +131,7 @@ export class Storage extends EventEmitter<{
   }
 
   public async update(document: Document): Promise<Document> {
-    return new Promise((resolve, reject) => {
+    return new Promise<Document>((resolve, reject) => {
       this.load().then(() => {
         this.operations.push({ type: "update", document, resolve, reject });
         this.process();
@@ -136,7 +140,7 @@ export class Storage extends EventEmitter<{
   }
 
   public async upsert(document: Document): Promise<Document> {
-    return new Promise((resolve, reject) => {
+    return new Promise<Document>((resolve, reject) => {
       this.load().then(() => {
         this.operations.push({ type: "upsert", document, resolve, reject });
         this.process();
@@ -145,7 +149,7 @@ export class Storage extends EventEmitter<{
   }
 
   public async delete(id: string): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       this.load().then(() => {
         this.operations.push({ type: "delete", id, resolve, reject });
         this.process();
@@ -197,6 +201,7 @@ export class Storage extends EventEmitter<{
         }
         const document = { id, ...data };
         this.documents.set(id, document);
+        this.index.add(document);
         this.emit("change", "insert", document);
         return document;
       }
@@ -207,6 +212,7 @@ export class Storage extends EventEmitter<{
         }
         const document = { ...this.documents.get(data.id), ...data };
         this.documents.set(data.id, document);
+        this.index.update(data, document);
         this.emit("change", "update", document);
         return document;
       }
@@ -216,16 +222,22 @@ export class Storage extends EventEmitter<{
         if (this.documents.has(data.id)) {
           document = { ...this.documents.get(data.id), ...data };
           this.documents.set(data.id, document);
+          this.index.update(data, document);
           this.emit("change", "update", document);
         } else {
           document = data;
           this.documents.set(document.id, document);
+          this.index.add(document);
           this.emit("change", "insert", document);
         }
         return document;
       }
       case "delete": {
-        this.documents.delete(operation.id);
+        const document = this.documents.get(operation.id);
+        if (document) {
+          this.documents.delete(operation.id);
+          this.index.remove(document);
+        }
         this.emit("change", "delete", { id: operation.id });
         break;
       }

@@ -6,9 +6,28 @@ import { data } from "./Mocks/UserData";
 describe("Collection", () => {
   describe("when registering a new collection", () => {
     it("should successfully register", () => {
-      const collection = new Collection(User, new InstanceAdapter());
+      const collection = new Collection(User, { adapter: new InstanceAdapter() });
       expect(collection.name).toEqual("users");
       expect(collection.model).toEqual(User);
+    });
+  });
+
+  describe("when adding index settings", () => {
+    it("should index current data", async () => {
+      const collection = new Collection(User, { adapter: new InstanceAdapter(), indicies: ["name"] });
+
+      await collection.insert(data[0]);
+      await collection.insert(data[1]);
+      await collection.insert(data[2]);
+      await collection.insert(data[3]);
+
+      expect(collection.storage.index.keys).toEqual({
+        name: {
+          "John Doe": new Set(["user-1", "user-4"]),
+          "James Doe": new Set(["user-3"]),
+          "Jane Doe": new Set(["user-2"])
+        }
+      });
     });
   });
 
@@ -74,6 +93,18 @@ describe("Collection", () => {
     });
   });
 
+  describe("when finding documents by key", () => {
+    it("should return model instances if documents exists", async () => {
+      const { collection, documents } = await getMockedCollection();
+      await expect(collection.findBy("name", "John Doe")).resolves.toEqual([new User(documents[0])]);
+    });
+
+    it("should return empty array if documents does not exists", async () => {
+      const { collection } = await getMockedCollection();
+      await expect(collection.findBy("name", "Peter Doe")).resolves.toEqual([]);
+    });
+  });
+
   describe("when finding document by filter", () => {
     it("should return model instances when matches rae found", async () => {
       const { collection } = await getMockedCollection();
@@ -109,7 +140,7 @@ describe("Collection", () => {
 });
 
 async function getMockedCollection() {
-  const collection = new Collection(User, new InstanceAdapter());
+  const collection = new Collection(User, { adapter: new InstanceAdapter(), indicies: ["name"] });
 
   await collection.insert(data[0]);
   await collection.insert(data[1]);
