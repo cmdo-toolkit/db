@@ -4,7 +4,7 @@ import { RawObject } from "mingo/types";
 import { InstanceAdapter } from "../Adapters/InstanceAdapter";
 import type { Options } from "../Types/Collection";
 import type { Document } from "../Types/Storage";
-import { toQueriedData } from "../Utils/Observe";
+import { addOptions } from "../Utils/Query";
 import { Collection } from "./Collection";
 import { Storage } from "./Storage";
 
@@ -66,4 +66,11 @@ export function observe(
       cb(toQueriedData(store.data, options));
     }
   });
+}
+
+function toQueriedData(documents: Document[], options?: Options): Document[] {
+  if (options) {
+    return addOptions(new Query({}).find(documents), options).all() as Document[];
+  }
+  return documents;
 }
