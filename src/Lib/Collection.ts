@@ -98,8 +98,6 @@ export class Collection<M extends ModelClass = ModelClass> {
   /**
    * Retrieve a record by the document 'id' key.
    *
-   * @url https://github.com/kofrasa/mingo
-
    * @remarks
    *
    * This is a optimized operation that skips the Mingo Query step and attempts to
