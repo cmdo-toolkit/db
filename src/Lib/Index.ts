@@ -1,18 +1,22 @@
-import type { Document } from "../Types/Storage";
+import type { Document as BaseDocument } from "../Types/Storage";
 
-type IndexKeys = Record<string, IndexValues>;
-type IndexValues = Record<string, Set<string>>;
-type IndexForEachFn = (key: string, values: IndexValues) => void;
+type IndexKeys<Document extends BaseDocument> = Record<keyof Document, IndexValues<Document>>;
+type IndexValues<Document extends BaseDocument> = Record<Document[keyof Document], Set<string>>;
+type IndexForEachFn<Document extends BaseDocument> = (key: string, values: IndexValues<Document>) => void;
 
-export class Index {
-  public readonly keys: IndexKeys = {};
+export class Index<Document extends BaseDocument> {
+  public readonly keys: IndexKeys<Document> = {} as IndexKeys<Document>;
 
   private loaded = false;
 
-  constructor(keys: string[]) {
+  constructor(keys: (keyof Document)[]) {
     for (const key of keys) {
       this.addKey(key);
     }
+  }
+
+  public get(key: keyof IndexKeys<Document>) {
+    return this.keys[key];
   }
 
   /*
@@ -67,7 +71,7 @@ export class Index {
    |--------------------------------------------------------------------------------
    */
 
-  public forEach(fn: IndexForEachFn) {
+  public forEach(fn: IndexForEachFn<Document>) {
     for (const key in this.keys) {
       fn(key, this.keys[key]);
     }
@@ -79,13 +83,13 @@ export class Index {
    |--------------------------------------------------------------------------------
    */
 
-  private addKey(key: string) {
+  private addKey(key: keyof IndexKeys<Document>) {
     if (!this.keys[key]) {
-      this.keys[key] = {};
+      this.keys[key] = {} as IndexValues<Document>;
     }
   }
 
-  private addValue(key: string, value: string) {
+  private addValue(key: keyof IndexKeys<Document>, value: Document[keyof Document]) {
     if (!this.keys[key][value]) {
       this.keys[key][value] = new Set();
     }

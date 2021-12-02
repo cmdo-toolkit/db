@@ -1,30 +1,23 @@
 import { Query } from "mingo";
 import { RawObject } from "mingo/types";
 
-import type { Options } from "../Types/Collection";
+import type { Options, Settings } from "../Types/Collection";
 import type { ModelClass } from "../Types/Model";
-import type { Adapter } from "../Types/Storage";
-import { Document } from "../Types/Storage";
+import { Document as BaseDocument } from "../Types/Storage";
 import { addOptions } from "../Utils/Query";
 import { observe } from "./Observe";
 import { observeOne } from "./ObserveOne";
 import { Storage } from "./Storage";
 
-type Settings = {
-  adapter: Adapter;
-  indicies?: string[];
-  unique?: string[][];
-};
-
-export class Collection<M extends ModelClass = ModelClass> {
+export class Collection<Model extends ModelClass, Document = ReturnType<InstanceType<Model>["toJSON"]>> {
   public readonly name: string;
-  public readonly model: M;
-  public readonly storage: Storage;
+  public readonly model: Model;
+  public readonly storage: Storage<Document>;
 
-  constructor(model: M, { adapter, indicies }: Settings) {
+  constructor(model: Model, { adapter, indicies }: Settings<Document>) {
     this.name = model.$collection;
     this.model = model;
-    this.storage = new Storage(this.name, adapter, indicies);
+    this.storage = new Storage<Document>(this.name, adapter, indicies);
   }
 
   /*
@@ -33,15 +26,15 @@ export class Collection<M extends ModelClass = ModelClass> {
    |--------------------------------------------------------------------------------
    */
 
-  public async insert(document: ReturnType<InstanceType<M>["toJSON"]>) {
+  public async insert(document: Document) {
     return this.toModel(await this.storage.insert(document));
   }
 
-  public async update(document: Document & Partial<ReturnType<InstanceType<M>["toJSON"]>>) {
+  public async update(document: Document & Partial<Document>) {
     return this.toModel(await this.storage.update(document));
   }
 
-  public async upsert(document: ReturnType<InstanceType<M>["toJSON"]>) {
+  public async upsert(document: Document) {
     return this.toModel(await this.storage.upsert(document));
   }
 
@@ -57,9 +50,9 @@ export class Collection<M extends ModelClass = ModelClass> {
 
   public observe(criteria: RawObject = {}, options?: Options) {
     let unsubscribe: () => void;
-    let next: (value: InstanceType<M>[]) => void;
+    let next: (value: InstanceType<Model>[]) => void;
     return {
-      subscribe: (_next: (value: InstanceType<M>[]) => void) => {
+      subscribe: (_next: (value: InstanceType<Model>[]) => void) => {
         next = _next;
         unsubscribe = observe(this, criteria, options, (documents: Document[]) => {
           next(documents.map((document) => this.toModel(document)));
@@ -77,18 +70,18 @@ export class Collection<M extends ModelClass = ModelClass> {
 
   public observeOne(criteria: RawObject = {}) {
     let unsubscribe: () => void;
-    let next: (value?: InstanceType<M>) => void;
+    let next: (value?: InstanceType<Model>) => void;
     return {
-      subscribe: (_next: (value?: InstanceType<M>) => void) => {
+      subscribe: (_next: (value?: InstanceType<Model>) => void) => {
         next = _next;
-        unsubscribe = observeOne(this, criteria, (document: Document | undefined) => {
+        unsubscribe = observeOne(this, criteria, (document?: Document) => {
           next(document ? this.toModel(document) : undefined);
         });
         return { unsubscribe };
       },
       filter: (criteria: RawObject) => {
         unsubscribe();
-        unsubscribe = observeOne(this, criteria, (document: Document | undefined) => {
+        unsubscribe = observeOne(this, criteria, (document?: Document) => {
           next(document ? this.toModel(document) : undefined);
         });
       }
@@ -117,13 +110,13 @@ export class Collection<M extends ModelClass = ModelClass> {
   }
 
   public async findBy(key: string, value: string) {
-    const index = this.storage.index.keys[key];
+    const index = this.storage.index.get(key);
     if (!index) {
       throw new Error("You cannot perform .findBy on a non indexed key");
     }
     const ids = index[value];
     if (ids) {
-      return Array.from(ids).reduce<InstanceType<M>[]>((models, id) => {
+      return Array.from(ids).reduce<InstanceType<Model>[]>((models, id) => {
         const document = this.storage.documents.get(id);
         if (document) {
           models.push(this.toModel(document));
@@ -220,6 +213,6 @@ export class Collection<M extends ModelClass = ModelClass> {
   }
 
   private toModel(document: Document) {
-    return new this.model(document) as InstanceType<M>;
+    return new this.model(document) as InstanceType<Model>;
   }
 }

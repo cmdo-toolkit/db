@@ -3,10 +3,10 @@ import { nanoid } from "nanoid";
 
 import { InstanceAdapter } from "../Adapters/InstanceAdapter";
 import { DocumentNotFoundError, DuplicateDocumentError } from "../Errors/Storage";
-import type { Adapter, ChangeType, Delete, Document, Operation, Status } from "../Types/Storage";
+import type { Adapter, ChangeType, Delete, Document as BaseDocument, Operation, Status } from "../Types/Storage";
 import { Index } from "./Index";
 
-export class Storage extends EventEmitter<{
+export class Storage<Document extends BaseDocument> extends EventEmitter<{
   loading: () => void;
   ready: () => void;
   working: () => void;
@@ -17,8 +17,8 @@ export class Storage extends EventEmitter<{
 
   public readonly name: string;
   public readonly adapter: Adapter;
-  public readonly index: Index;
-  public readonly documents: Map<string, Document>;
+  public readonly index: Index<Document>;
+  public readonly documents: Map<Document["id"], Document>;
   public readonly operations: Operation[];
   public readonly debounce: {
     save?: NodeJS.Timeout;
@@ -28,7 +28,7 @@ export class Storage extends EventEmitter<{
 
   public status: Status;
 
-  constructor(name: string, adapter: Adapter = new InstanceAdapter(), indicies: string[] = []) {
+  constructor(name: string, adapter: Adapter = new InstanceAdapter(), indicies: (keyof Document)[] = []) {
     super();
     this.name = name;
     this.adapter = adapter;
